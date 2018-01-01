@@ -51,7 +51,9 @@ function get_nginx_proxy_cid {
     done
     if [[ -z "$(nginx_proxy_container)" ]]; then
         echo "Error: can't get nginx-proxy container id !" >&2
-        echo "Check that you use the --volumes-from option to mount volumes from the nginx-proxy or label the nginx proxy container to use with 'com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=true'." >&2
+        echo -n "Check that you use the --volumes-from option to mount volumes from " >&2
+        echo -n "the nginx-proxy or label the nginx proxy container to use with " >&2
+        echo "'com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy'." >&2
         exit 1
     fi
 }
