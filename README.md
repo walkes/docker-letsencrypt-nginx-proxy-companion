@@ -12,8 +12,6 @@ letsencrypt-nginx-proxy-companion is a lightweight companion container for the [
 * Automatically creation of a Strong Diffie-Hellman Group (for having an A+ Rate on the [Qualsys SSL Server Test](https://www.ssllabs.com/ssltest/)).
 * Work with all versions of docker.
 
-***NOTE***: The first time this container is launched it generates a new Diffie-Hellman group file. This process can take several minutes to complete (be patient).
-
 ![schema](./schema.png)
 
 #### Usage
@@ -58,6 +56,8 @@ nginx proxy can also be run as two separate containers using the [jwilder/docker
 image and the official [nginx](https://hub.docker.com/_/nginx/) image.
 
 You may want to do this to prevent having the docker socket bound to a publicly exposed container service (avoid to mount the docker socket in the nginx exposed container). It's better in a security point of view.
+
+***NOTE***: The first time this container is launched in this setup, it generates it own Diffie-Hellman group file. This process can take several minutes to complete (be patient).
 
 To run nginx proxy as a separate container you'll need:
 
