@@ -53,6 +53,15 @@ update_certs() {
     # shellcheck source=/dev/null
     source "$DIR"/letsencrypt_service_data
 
+    ENABLED_DOMAINS=()
+    SYMLINKED_DOMAINS=()
+    for symlinked_domain in /etc/nginx/certs/*.crt; do
+        [[ -f "$symlinked_domain" ]] || break
+        symlinked_domain="${symlinked_domain##*/}"
+        symlinked_domain="${symlinked_domain%*.crt}"
+        SYMLINKED_DOMAINS+=("$symlinked_domain")
+    done
+
     should_reload_nginx='false'
     for cid in "${LETSENCRYPT_CONTAINERS[@]}"; do
         # Derive host and email variable names
@@ -176,8 +185,34 @@ update_certs() {
         for domain in "${!hosts_array}"; do
             create_links $base_domain $domain && should_reload_nginx='true'
             [[ $simp_le_return -eq 0 ]] && should_reload_nginx='true'
+            # Add domain to the array storing currently enabled domains
+            ENABLED_DOMAINS+=("$domain")
         done
     done
+
+    # Create an array containing only domains for which a symlinked private key exists
+    # in /etc/nginx/certs but that no longer have a corresponding LETSENCRYPT_HOST set
+    # on an active container.
+    unset DISABLED_DOMAINS
+    if [[ ${#SYMLINKED_DOMAINS[@]} -gt 0 ]]; then
+        mapfile -t DISABLED_DOMAINS < <(echo "${SYMLINKED_DOMAINS[@]}" \
+                                             "${ENABLED_DOMAINS[@]}" \
+                                             "${ENABLED_DOMAINS[@]}" \
+                                             | tr ' ' '\n' | sort | uniq -u)
+    fi
+
+    # Remove disabled domains symlinks if present and queue nginx reload
+    if [[ ${#DISABLED_DOMAINS[@]} -gt 0 ]]; then
+      for disabled_domain in "${DISABLED_DOMAINS[@]}"; do
+          for extension in .crt .key .dhparam.pem .chain.pem; do
+              file="${disabled_domain}${extension}"
+              if [[ -n "${file// }" ]] && [[ -f "/etc/nginx/certs/${file}" ]]; then
+                  rm -f "/etc/nginx/certs/${file}"
+              fi
+          done
+      done
+      should_reload_nginx='true'
+    fi
 
     [[ "$should_reload_nginx" == 'true' ]] && reload_nginx
 }
